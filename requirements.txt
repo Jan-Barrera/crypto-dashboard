@@ -4,3 +4,6 @@ numpy
 requests
 matplotlib
 mplfinance
+sqlalchemy
+python-dotenv
+psycopg2-binary
