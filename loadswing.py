@@ -172,7 +172,7 @@ def download_latest_prices(pairs: list[str] | None = None) -> dict[str, pd.DataF
             prices_by_pair[display_pair] = prices
             print(
                 f"  {display_pair}: {len(prices)} rows "
-                f"through {pd.Timestamp(prices.index.max()).date()}"
+                f"through {pd.Timestamp(str(prices.index.max())).date()}"
             )
         except Exception as exc:
             print(f"  Failed {display_pair}: {exc}")
@@ -566,7 +566,12 @@ def prepare_swingtrade_rows(filtered: pd.DataFrame) -> pd.DataFrame:
     out["name"] = out["pair"].map(asset_name)
     out["date"] = pd.to_datetime(out["date"]).dt.date
     out["signal_date"] = out["date"]
-    out["confirm_count"] = pd.to_numeric(out["confirm_count"], errors="coerce").fillna(0).astype(int)
+    confirm_count = pd.Series(
+        pd.to_numeric(out["confirm_count"], errors="coerce"),
+        index=out.index,
+        dtype="float64",
+    ).fillna(0)
+    out["confirm_count"] = confirm_count.astype(int)
     out["adx_bullish"] = out["adx_bullish"].astype(bool)
     out["obv_bullish"] = out["obv_bullish"].astype(bool)
     return out.loc[:, DB_COLUMNS].copy()
@@ -677,7 +682,7 @@ def main() -> None:
                 "confirm_count",
             ]
         ]
-        print(display.to_string(float_format=lambda value: f"{value:.2f}"))
+        print(display.round(2).to_string())
 
     save_swingtrade_csv(filtered)
     rows = prepare_swingtrade_rows(filtered)
