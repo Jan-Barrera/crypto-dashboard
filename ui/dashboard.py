@@ -14,7 +14,6 @@ from model.scrape_data import (
     get_market_news,
     get_watchlist_data,
     indices_needs_refresh,
-    market_news_needs_refresh,
 )
 
 DASHBOARD_REFRESH = timedelta(seconds=SCRAPE_INTERVAL_SECONDS)
@@ -100,21 +99,10 @@ def _draw_index_cards(indices: list[dict]) -> None:
         )
 
 
-@st.fragment(run_every=DASHBOARD_REFRESH)
-def render_index_cards() -> None:
-    if indices_needs_refresh():
-        with st.spinner("Loading 24h stats..."):
-            with st.skeleton(height=220):
-                _draw_index_cards(get_indices())
-    else:
-        _draw_index_cards(get_indices())
-
-
 def render_watchlist_header() -> None:
     st.markdown(
         """
         <div class="section-title">📊 MARKET WATCHLIST</div>
-        <div class="section-sub">Live 24h stats</div>
         """,
         unsafe_allow_html=True,
     )
@@ -173,16 +161,6 @@ def _draw_market_news(news: list[tuple[str, str, str]]) -> None:
     st.markdown(news_html, unsafe_allow_html=True)
 
 
-@st.fragment(run_every=DASHBOARD_REFRESH)
-def render_market_news() -> None:
-    if market_news_needs_refresh():
-        with st.spinner("Loading movers from Binance..."):
-            with st.skeleton(height=220):
-                _draw_market_news(get_market_news())
-    else:
-        _draw_market_news(get_market_news())
-
-
 def render_bottom_panels() -> None:
     b1, b2 = st.columns(2)
     checklist_left = get_checklist_left()
@@ -196,7 +174,7 @@ def render_bottom_panels() -> None:
         st.markdown(checklist_html, unsafe_allow_html=True)
 
     with b2:
-        render_market_news()
+        _draw_market_news(get_market_news())
 
 
 def render_footer() -> None:
@@ -217,11 +195,8 @@ def render_footer() -> None:
     )
 
 
-def render_dashboard() -> None:
-    st.write("")
-    render_header()
-    st.write("")
-    render_index_cards()
+def _draw_live_market() -> None:
+    _draw_index_cards(get_indices())
     st.write("")
     st.write("")
     render_watchlist_header()
@@ -230,3 +205,20 @@ def render_dashboard() -> None:
     st.write("")
     render_bottom_panels()
     render_footer()
+
+
+@st.fragment(run_every=DASHBOARD_REFRESH)
+def render_live_market() -> None:
+    """Auto-refresh cards, watchlist, movers, and footer every SCRAPE_INTERVAL."""
+    if indices_needs_refresh():
+        with st.spinner("Refreshing market data from Binance..."):
+            _draw_live_market()
+    else:
+        _draw_live_market()
+
+
+def render_dashboard() -> None:
+    st.write("")
+    render_header()
+    st.write("")
+    render_live_market()

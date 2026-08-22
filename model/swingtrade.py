@@ -214,7 +214,12 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     ).max(axis=1)
     result["atr"] = true_range.ewm(alpha=1 / ATR_PERIOD, adjust=False).mean()
 
-    result["Volume"] = pd.to_numeric(result["Volume"], errors="coerce").fillna(0.0)
+    volume = pd.Series(
+        pd.to_numeric(result["Volume"], errors="coerce"),
+        index=result.index,
+        dtype="float64",
+    ).fillna(0.0)
+    result["Volume"] = volume
     result["quote_volume"] = close * result["Volume"]
     result["adtv_volume"] = result["Volume"].rolling(ADTV_PERIOD).mean()
     result["adtv"] = result["quote_volume"].rolling(ADTV_PERIOD).mean()
@@ -223,8 +228,12 @@ def compute_indicators(df: pd.DataFrame) -> pd.DataFrame:
     high = result["High"]
     low = result["Low"]
     hl_range = (high - low).replace(0, float("nan"))
-    clv = ((close - low) - (high - close)) / hl_range
-    clv = pd.to_numeric(clv, errors="coerce").fillna(0.0)
+    clv_raw = ((close - low) - (high - close)) / hl_range
+    clv = pd.Series(
+        pd.to_numeric(clv_raw, errors="coerce"),
+        index=result.index,
+        dtype="float64",
+    ).fillna(0.0)
     result["ad"] = (clv * result["Volume"]).cumsum()
     result["ad_sma20"] = result["ad"].rolling(ADTV_PERIOD).mean()
 
@@ -242,21 +251,20 @@ def find_nearest_resistance(df: pd.DataFrame) -> float:
     candidates: list[float] = []
 
     if "bb_upper" in df.columns:
-        bb_upper = df["bb_upper"].iloc[-1]
+        bb_upper = float(df["bb_upper"].iloc[-1])
         if pd.notna(bb_upper) and bb_upper > latest_close:
-            candidates.append(float(bb_upper))
+            candidates.append(bb_upper)
 
-    high = df["High"]
+    high = pd.Series(df["High"], index=df.index, dtype="float64")
     span = PIVOT_WINDOW * 2 + 1
-    is_pivot = high == high.rolling(span, center=True).max()
-    is_pivot = is_pivot.fillna(False)
+    is_pivot = (high == high.rolling(span, center=True).max()).fillna(False)
     is_pivot.iloc[-PIVOT_WINDOW:] = False
-    swing_highs = high[is_pivot]
-    above_swings = swing_highs[swing_highs > latest_close]
-    if not above_swings.empty:
+    swing_highs = high.loc[is_pivot.astype(bool)]
+    above_swings = swing_highs.loc[swing_highs > latest_close]
+    if len(above_swings) > 0:
         candidates.append(float(above_swings.min()))
 
-    cutoff = df.index[-1] - pd.Timedelta(days=RESISTANCE_LOOKBACK_DAYS)
+    cutoff = pd.Timestamp(str(df.index[-1])) - pd.Timedelta(days=RESISTANCE_LOOKBACK_DAYS)
     window = df.loc[df.index >= cutoff]
     period_high = float(window["High"].max())
     if period_high > latest_close:
@@ -270,21 +278,20 @@ def find_nearest_support(df: pd.DataFrame) -> float:
     candidates: list[float] = []
 
     if "bb_lower" in df.columns:
-        bb_lower = df["bb_lower"].iloc[-1]
+        bb_lower = float(df["bb_lower"].iloc[-1])
         if pd.notna(bb_lower) and bb_lower < latest_close:
-            candidates.append(float(bb_lower))
+            candidates.append(bb_lower)
 
-    low = df["Low"]
+    low = pd.Series(df["Low"], index=df.index, dtype="float64")
     span = PIVOT_WINDOW * 2 + 1
-    is_pivot = low == low.rolling(span, center=True).min()
-    is_pivot = is_pivot.fillna(False)
+    is_pivot = (low == low.rolling(span, center=True).min()).fillna(False)
     is_pivot.iloc[-PIVOT_WINDOW:] = False
-    swing_lows = low[is_pivot]
-    below_swings = swing_lows[swing_lows < latest_close]
-    if not below_swings.empty:
+    swing_lows = low.loc[is_pivot.astype(bool)]
+    below_swings = swing_lows.loc[swing_lows < latest_close]
+    if len(below_swings) > 0:
         candidates.append(float(below_swings.max()))
 
-    cutoff = df.index[-1] - pd.Timedelta(days=RESISTANCE_LOOKBACK_DAYS)
+    cutoff = pd.Timestamp(str(df.index[-1])) - pd.Timedelta(days=RESISTANCE_LOOKBACK_DAYS)
     window = df.loc[df.index >= cutoff]
     period_low = float(window["Low"].min())
     if period_low < latest_close:
@@ -474,11 +481,12 @@ def apply_filters(confirmations: pd.DataFrame) -> pd.DataFrame:
         return confirmations
 
     out = confirmations.copy()
-    out = out[out["rsi"] <= RSI_MAX]
-    out = out[out["liquid_pair"] == True]  # noqa: E712
-    out = out[out["confirm_count"] > 3]
-    out = out[out["adx_bullish"] == True]  # noqa: E712
-    out = out[out["obv_bullish"] == True]  # noqa: E712
+    out = out.loc[out["rsi"] <= RSI_MAX]
+    out = out.loc[out["liquid_pair"] == True]  # noqa: E712
+    out = out.loc[out["confirm_count"] > 3]
+    out = out.loc[out["adx_bullish"] == True]  # noqa: E712
+    out = out.loc[out["obv_bullish"] == True]  # noqa: E712
+    assert isinstance(out, pd.DataFrame)
     return out
 
 
@@ -497,13 +505,15 @@ def build_swingtrade_dataframe() -> pd.DataFrame:
         all_prices[display_pair] = cleaned
 
     if not all_prices:
-        raise ValueError("No Binance klines available to build the swing trade watchlist")
+        raise ValueError("No klines available to build the swing trade watchlist")
 
     signals = build_ichimoku_signals(all_prices)
     if signals.empty:
         return pd.DataFrame(columns=RAW_COLUMNS)
 
-    bullish_pairs = signals[signals["bullish_count"] > 2]
+    bullish_pairs = signals.loc[signals["bullish_count"] > 2]
+    if not isinstance(bullish_pairs, pd.DataFrame) or bullish_pairs.empty:
+        return pd.DataFrame(columns=RAW_COLUMNS)
     confirmations = build_confirmations(all_prices, bullish_pairs)
     confirmations = add_adx_confirmation(all_prices, confirmations)
     filtered = apply_filters(confirmations)
@@ -515,21 +525,21 @@ def build_swingtrade_dataframe() -> pd.DataFrame:
     ).reset_index()
     rows: list[dict[str, object]] = []
     for _, row in ranked.iterrows():
-        symbol = row["pair"]
+        symbol = str(row.loc["pair"])
         rows.append(
             {
                 "symbol": symbol,
                 "name": asset_name(symbol),
-                "date": row["date"],
-                "close": row["close"],
-                "support": row["support"],
-                "resistance": row["resistance"],
-                "stop_loss": row["stop_loss"],
-                "take_profit": row["take_profit"],
-                "rsi": row["rsi"],
-                "adx": row["adx"],
-                "confirm_count": int(row["confirm_count"]),
-                "adtv": row["adtv"],
+                "date": row.loc["date"],
+                "close": float(row.loc["close"]),
+                "support": float(row.loc["support"]),
+                "resistance": float(row.loc["resistance"]),
+                "stop_loss": float(row.loc["stop_loss"]),
+                "take_profit": float(row.loc["take_profit"]),
+                "rsi": float(row.loc["rsi"]),
+                "adx": float(row.loc["adx"]),
+                "confirm_count": int(float(row.loc["confirm_count"])),
+                "adtv": float(row.loc["adtv"]),
             }
         )
     return pd.DataFrame(rows, columns=RAW_COLUMNS)
@@ -551,6 +561,26 @@ def get_swingtrade_dataframe() -> pd.DataFrame:
     return frame
 
 
+def _cell(row: pd.Series, key: str) -> object:
+    value = row.loc[key] if key in row.index else None
+    if isinstance(value, pd.Series):
+        return None if value.empty else value.iloc[0]
+    return value
+
+
+def _is_missing(value: object) -> bool:
+    if value is None:
+        return True
+    result = pd.isna(value)
+    return bool(result) if isinstance(result, bool) else False
+
+
+def _as_float(value: object) -> float | None:
+    if _is_missing(value):
+        return None
+    return float(f"{value}")
+
+
 def get_swing_trade_watchlist() -> pd.DataFrame:
     frame = get_swingtrade_dataframe()
     if frame.empty:
@@ -558,24 +588,26 @@ def get_swing_trade_watchlist() -> pd.DataFrame:
 
     rows = []
     for _, row in frame.iterrows():
-        trade_date = row["date"]
+        trade_date = _cell(row, "date")
         date_label = (
-            pd.Timestamp(trade_date).strftime("%Y-%m-%d")
-            if pd.notna(trade_date)
+            pd.Timestamp(str(trade_date)).strftime("%Y-%m-%d")
+            if not _is_missing(trade_date)
             else ""
         )
-        rsi = row["rsi"] if "rsi" in row and pd.notna(row["rsi"]) else None
-        adx = row["adx"] if "adx" in row and pd.notna(row["adx"]) else None
+        rsi = _as_float(_cell(row, "rsi"))
+        adx = _as_float(_cell(row, "adx"))
+        symbol = str(_cell(row, "symbol") or "")
+        name_raw = _cell(row, "name")
         rows.append(
             {
-                "Symbol": row["symbol"],
-                "Name": row.get("name") or asset_name(row["symbol"]),
+                "Symbol": symbol,
+                "Name": str(name_raw) if name_raw else asset_name(symbol),
                 "Date": date_label,
-                "Close": format_usd(row["close"]),
-                "Support": format_usd(row["support"]),
-                "Resistance": format_usd(row["resistance"]),
-                "Stop Loss": format_usd(row["stop_loss"]),
-                "Take Profit": format_usd(row["take_profit"]),
+                "Close": format_usd(_cell(row, "close")),
+                "Support": format_usd(_cell(row, "support")),
+                "Resistance": format_usd(_cell(row, "resistance")),
+                "Stop Loss": format_usd(_cell(row, "stop_loss")),
+                "Take Profit": format_usd(_cell(row, "take_profit")),
                 "RSI": f"{rsi:.1f}" if rsi is not None else "",
                 "ADX": f"{adx:.1f}" if adx is not None else "",
             }
