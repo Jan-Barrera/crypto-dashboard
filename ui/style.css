@@ -1,0 +1,191 @@
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Inter', sans-serif;
+    }
+
+    .stApp {
+        background-color: #0b0f19;
+        color: #e6e9ef;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: #0d1220;
+        border-right: 1px solid #1c2333;
+    }
+
+    /* Hide default streamlit chrome */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    .block-container {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+        max-width: 1500px;
+    }
+
+    .card {
+        background-color: #11172a;
+        border: 1px solid #1e2540;
+        border-radius: 12px;
+        padding: 16px 18px;
+    }
+
+    .card-label {
+        color: #8b93a7;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .card-value {
+        font-size: 30px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1.1;
+    }
+
+    .card-change-up {
+        color: #26d07c;
+        font-weight: 600;
+        font-size: 14px;
+        margin-top: 2px;
+    }
+
+    .card-change-down {
+        color: #f0555e;
+        font-weight: 600;
+        font-size: 14px;
+        margin-top: 2px;
+    }
+
+    .sub-stats {
+        display:flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        border-top: 1px solid #1e2540;
+        padding-top: 8px;
+    }
+
+    .sub-stat-label {
+        color: #6b7386;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+    }
+    .sub-stat-value {
+        color: #dfe3ee;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .section-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+        margin-bottom: 0px;
+    }
+
+    .section-sub {
+        color: #8b93a7;
+        font-size: 13px;
+        margin-top: 0px;
+        margin-bottom: 10px;
+    }
+
+    .pill {
+        background-color: #161d33;
+        border: 1px solid #262f4d;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: #c7cce0;
+        display: inline-block;
+    }
+
+    .ticker-badge {
+        color: #4ea8ff;
+        font-weight: 800;
+        font-size: 14px;
+    }
+
+    .badge-up {
+        color: #26d07c;
+        font-weight: 700;
+    }
+    .badge-down {
+        color: #f0555e;
+        font-weight: 700;
+    }
+
+    .trend-up {
+        color: #26d07c;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .trend-side {
+        color: #f0555e;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .checklist-item {
+        color: #c7cce0;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .news-item {
+        font-size: 13px;
+        color: #c7cce0;
+        margin-bottom: 10px;
+        border-bottom: 1px solid #1e2540;
+        padding-bottom: 8px;
+    }
+    .news-date {
+        color: #6b7386;
+        font-size: 11px;
+        margin-right: 6px;
+    }
+
+    .event-row {
+        display:flex;
+        justify-content: space-between;
+        align-items:center;
+        font-size: 13px;
+        color: #c7cce0;
+        margin-bottom: 10px;
+    }
+
+    .market-status {
+        color: #f0555e;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .market-status-open {
+        color: #26d07c;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .top-bar-title {
+        font-size: 22px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.02em;
+    }
+    .top-bar-sub {
+        color: #8b93a7;
+        font-size: 13px;
+    }
+
+    div[data-testid="stDataFrame"] {
+        border: 1px solid #1e2540;
+        border-radius: 10px;
+    }
