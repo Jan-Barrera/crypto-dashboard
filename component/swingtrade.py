@@ -21,7 +21,7 @@ def render_swing_trade_watchlist() -> None:
     st.markdown(
         """
         <div class="section-title">⭐ SWING TRADE WATCHLIST</div>
-        <div class="section-sub">Latest setups from crypto_swingtrade</div>
+        <div class="section-sub">Latest setups for swing trading</div>
         """,
         unsafe_allow_html=True,
     )
