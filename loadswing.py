@@ -142,13 +142,32 @@ def output_path_for_date(signal_date) -> Path:
     return OUTPUT_DIR / f"swingtrade_signals_{date_label}.csv"
 
 
-def _drop_in_progress_candle(prices: pd.DataFrame) -> pd.DataFrame:
+def _drop_unusable_daily_candle(prices: pd.DataFrame) -> pd.DataFrame:
+    """Drop the current UTC daily candle only while it is still too fresh.
+
+    Binance 1d bars are keyed by open time and close at 00:00 UTC.
+    Always dropping ``open_time >= today`` made midday/evening runs look a full
+    day stale (e.g. 22:00 UTC still screened on yesterday).
+
+    Keep the forming candle once it has enough age; otherwise use the prior
+    completed bar (important for the 01:00 UTC GitHub Action).
+    """
     if prices.empty:
         return prices
-    today = pd.Timestamp.now(tz="UTC").normalize().tz_localize(None)
-    if prices.index[-1] >= today:
-        return prices.iloc[:-1].copy()
-    return prices
+
+    now = pd.Timestamp.now(tz="UTC").tz_localize(None)
+    last_open = pd.Timestamp(str(prices.index[-1])).tz_localize(None)
+    candle_close = last_open + pd.Timedelta(days=1)
+    is_complete = now >= candle_close
+    if is_complete:
+        return prices
+
+    # Forming candle: keep it after 12h so later-day runs use latest prices.
+    min_age = pd.Timedelta(hours=12)
+    if now - last_open >= min_age:
+        return prices
+
+    return prices.iloc[:-1].copy()
 
 
 def download_latest_prices(pairs: list[str] | None = None) -> dict[str, pd.DataFrame]:
@@ -156,24 +175,39 @@ def download_latest_prices(pairs: list[str] | None = None) -> dict[str, pd.DataF
     pairs = pairs or load_crypto_pairs()
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     prices_by_pair: dict[str, pd.DataFrame] = {}
+    now = pd.Timestamp.now(tz="UTC")
 
     for pair in pairs:
         display_pair = to_display_pair(pair)
         binance_symbol = to_binance_symbol(pair)
         try:
             print(f"Downloading {display_pair} from Binance...")
-            prices = fetch_klines(binance_symbol)
-            prices = _drop_in_progress_candle(prices)
-            if prices.empty:
-                print(f"  Skipping {display_pair}: no completed candles")
+            raw = fetch_klines(binance_symbol)
+            if raw.empty:
+                print(f"  Skipping {display_pair}: no candles returned")
                 continue
+
+            raw_last = pd.Timestamp(str(raw.index.max()))
+            prices = _drop_unusable_daily_candle(raw)
+            if prices.empty:
+                print(f"  Skipping {display_pair}: no usable completed candles")
+                continue
+
+            used_last = pd.Timestamp(str(prices.index.max()))
             cache_path = CACHE_DIR / f"{binance_symbol}_data.csv"
-            prices.to_csv(cache_path)
+            # Cache the full Binance response (includes forming candle).
+            raw.to_csv(cache_path)
             prices_by_pair[display_pair] = prices
-            print(
-                f"  {display_pair}: {len(prices)} rows "
-                f"through {pd.Timestamp(str(prices.index.max())).date()}"
+
+            forming = raw_last > used_last
+            note = (
+                f"Binance last open {raw_last.date()} still forming "
+                f"(UTC now {now.strftime('%Y-%m-%d %H:%M')}); "
+                f"screening uses {used_last.date()}"
+                if forming
+                else f"screening through {used_last.date()}"
             )
+            print(f"  {display_pair}: {len(prices)} rows, {note}")
         except Exception as exc:
             print(f"  Failed {display_pair}: {exc}")
             logger.warning("Failed to download %s: %s", display_pair, exc)
