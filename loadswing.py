@@ -29,9 +29,9 @@ from db.hist_data import fetch_klines
 
 logger = logging.getLogger(__name__)
 
-TENKAN = 9
-KIJUN = 26
-SENKOU = 52
+TENKAN = 20
+KIJUN = 60
+SENKOU = 120
 EMA_SPAN = 21
 RSI_PERIOD = 14
 MACD_FAST = 12
