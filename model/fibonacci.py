@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass
 
 import matplotlib as mpl
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import pandas as pd
@@ -171,7 +170,8 @@ def plot_fibonacci_retracement(
         )
 
     fig.patch.set_facecolor(_BG)
-    date_fmt = mdates.DateFormatter("%b %d")
+    # Keep mplfinance's bar-index → datetime labels (datetime_format).
+    # Do not apply mdates.DateFormatter here — x values are integers, not dates.
     for ax in axes:
         ax.set_facecolor(_PANEL)
         for spine in ax.spines.values():
@@ -181,12 +181,9 @@ def plot_fibonacci_retracement(
         ax.yaxis.label.set_color(_TEXT)
         ax.xaxis.label.set_color(_TEXT)
         ax.title.set_color(_TEXT)
-        ax.xaxis.set_major_formatter(date_fmt)
         for label in ax.get_xticklabels():
             label.set_rotation(0)
             label.set_ha("center")
-
-    axes[-1].xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=10))
 
     support_text = (
         f"{nearest_support[0]} at {format_usd(nearest_support[1])}"

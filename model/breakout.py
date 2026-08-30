@@ -2,7 +2,6 @@ import logging
 from dataclasses import dataclass
 
 import matplotlib as mpl
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
@@ -69,7 +68,8 @@ _STYLE = mpf.make_mpf_style(
 
 
 def _style_axes(axes) -> None:
-    date_fmt = mdates.DateFormatter("%b %d")
+    # Keep mplfinance's bar-index → datetime labels (datetime_format).
+    # Do not apply mdates.DateFormatter here — x values are integers, not dates.
     for ax in axes:
         ax.set_facecolor(_PANEL)
         for spine in ax.spines.values():
@@ -79,11 +79,9 @@ def _style_axes(axes) -> None:
         ax.yaxis.label.set_color(_TEXT)
         ax.xaxis.label.set_color(_TEXT)
         ax.title.set_color(_TEXT)
-        ax.xaxis.set_major_formatter(date_fmt)
         for label in ax.get_xticklabels():
             label.set_rotation(0)
             label.set_ha("center")
-    axes[-1].xaxis.set_major_locator(mdates.AutoDateLocator(minticks=6, maxticks=10))
 
 
 @dataclass
