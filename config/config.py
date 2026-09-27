@@ -9,9 +9,14 @@ CACHE_TTL_SECONDS = 15 * 60
 KLINE_INTERVAL = "1d"
 KLINE_LIMIT = 365
 
+# Prefer api.binance.com — data-api.binance.vision often fails DNS/TLS on some networks.
 BINANCE_BASE_URLS = (
-    "https://data-api.binance.vision",
     "https://api.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://api4.binance.com",
+    "https://data-api.binance.vision",
 )
 
 ASSET_NAMES = {
@@ -49,10 +54,13 @@ def load_crypto_pairs(path: Path | None = None) -> list[str]:
     if not list_path.exists():
         raise FileNotFoundError(f"Crypto list not found: {list_path}")
     pairs: list[str] = []
+    seen: set[str] = set()
     for raw_line in list_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if line and not line.startswith("#"):
-            pairs.append(line.upper())
+        line = raw_line.strip().upper()
+        if not line or line.startswith("#") or line in seen:
+            continue
+        seen.add(line)
+        pairs.append(line)
     if not pairs:
         raise ValueError(f"No trading pairs found in {list_path}")
     return pairs

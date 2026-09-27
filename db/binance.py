@@ -25,7 +25,7 @@ class BinanceAPIError(RuntimeError):
 
 def binance_get(path: str, params: dict[str, Any] | None = None) -> Any:
     last_error: Exception | None = None
-    for base_url in BINANCE_BASE_URLS:
+    for index, base_url in enumerate(BINANCE_BASE_URLS):
         url = f"{base_url}{path}"
         try:
             response = requests.get(
@@ -36,10 +36,20 @@ def binance_get(path: str, params: dict[str, Any] | None = None) -> Any:
             )
             payload = _parse_payload(response)
             response.raise_for_status()
+            if index > 0:
+                logger.info("Binance request succeeded via fallback %s", base_url)
             return payload
         except (requests.RequestException, ValueError, BinanceAPIError) as exc:
             last_error = exc
-            logger.warning("Binance request failed (%s): %s", url, exc)
+            remaining = len(BINANCE_BASE_URLS) - index - 1
+            if remaining:
+                logger.warning(
+                    "Binance request failed (%s), trying next endpoint: %s",
+                    url,
+                    exc,
+                )
+            else:
+                logger.warning("Binance request failed (%s): %s", url, exc)
     raise BinanceAPIError(f"All Binance endpoints failed for {path}: {last_error}")
 
 
