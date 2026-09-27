@@ -1,5 +1,4 @@
 from config.config import (
-    ASSET_NAMES,
     BINANCE_BASE_URLS,
     CACHE_DIR,
     CACHE_TTL_SECONDS,
@@ -18,7 +17,6 @@ from config.config import (
 )
 
 __all__ = [
-    "ASSET_NAMES",
     "BINANCE_BASE_URLS",
     "CACHE_DIR",
     "CACHE_TTL_SECONDS",

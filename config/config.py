@@ -19,33 +19,6 @@ BINANCE_BASE_URLS = (
     "https://data-api.binance.vision",
 )
 
-ASSET_NAMES = {
-    "BTC": "Bitcoin",
-    "ETH": "Ethereum",
-    "BNB": "BNB",
-    "SOL": "Solana",
-    "XRP": "XRP",
-    "ADA": "Cardano",
-    "AVAX": "Avalanche",
-    "DOT": "Polkadot",
-    "LINK": "Chainlink",
-    "AAVE": "Aave",
-    "NEAR": "NEAR Protocol",
-    "ATOM": "Cosmos",
-    "UNI": "Uniswap",
-    "LTC": "Litecoin",
-    "BCH": "Bitcoin Cash",
-    "DOGE": "Dogecoin",
-    "SUI": "Sui",
-    "APT": "Aptos",
-    "ARB": "Arbitrum",
-    "OP": "Optimism",
-    "INJ": "Injective",
-    "FET": "Fetch.ai",
-    "RENDER": "Render",
-    "FIL": "Filecoin",
-}
-
 _QUOTE_ASSETS = ("USDT", "USDC", "BUSD", "FDUSD")
 
 
@@ -91,8 +64,8 @@ def base_asset(symbol: str) -> str:
 
 
 def asset_name(symbol: str) -> str:
-    asset = base_asset(symbol)
-    return ASSET_NAMES.get(asset, asset)
+    """Display name for a symbol — base asset from crypto_list.txt pairs."""
+    return base_asset(symbol)
 
 
 def format_usd(value: object) -> str:
