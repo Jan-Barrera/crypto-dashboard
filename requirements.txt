@@ -6,4 +6,5 @@ matplotlib
 mplfinance
 sqlalchemy
 python-dotenv
+psycopg[binary]
 psycopg2-binary
