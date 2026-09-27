@@ -9,14 +9,11 @@ CACHE_TTL_SECONDS = 15 * 60
 KLINE_INTERVAL = "1d"
 KLINE_LIMIT = 365
 
-# Prefer api.binance.com — data-api.binance.vision often fails DNS/TLS on some networks.
+# data-api.binance.vision works from geo-restricted hosts (e.g. GitHub Actions US).
+# api.binance.com is the fallback when vision fails DNS/TLS on some local networks.
 BINANCE_BASE_URLS = (
-    "https://api.binance.com",
-    "https://api1.binance.com",
-    "https://api2.binance.com",
-    "https://api3.binance.com",
-    "https://api4.binance.com",
     "https://data-api.binance.vision",
+    "https://api.binance.com",
 )
 
 _QUOTE_ASSETS = ("USDT", "USDC", "BUSD", "FDUSD")
